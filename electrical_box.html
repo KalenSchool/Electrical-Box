@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electrical Box</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Fredoka', cursive, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+        }
+
+        /* Power line animation */
+        .power-line {
+            stroke-dasharray: 12;
+            animation: dash 1.5s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -24;
+            }
+        }
+
+        .bounce-gentle {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between items-center p-4 bg-slate-900 text-slate-100">
+
+    <!-- Header Navigation -->
+    <header class="w-full max-w-4xl flex justify-between items-center bg-slate-800/90 border-2 border-slate-700 rounded-2xl p-4 shadow-xl mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="p-3 bg-yellow-400 text-slate-900 rounded-xl text-2xl font-bold shadow-md">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-yellow-400 tracking-wide">Electrical Box</h1>
+                <p class="text-xs text-slate-400 font-semibold">Match the total target power!</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <!-- Stage Info -->
+            <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 text-center">
+                <span class="text-xs text-slate-400 block font-bold uppercase">Level</span>
+                <span id="stage-display" class="text-xl font-bold text-yellow-400">1 / 3</span>
+            </div>
+
+            <!-- Score -->
+            <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 text-center">
+                <span class="text-xs text-slate-400 block font-bold uppercase">Stars</span>
+                <span id="score-display" class="text-xl font-bold text-amber-400"><i class="fa-solid fa-star mr-1"></i>0</span>
+            </div>
+
+            <!-- Audio Toggle -->
+            <button id="audio-toggle" class="p-3 bg-slate-700 hover:bg-slate-600 rounded-xl transition text-lg" title="Toggle Sound">
+                <i class="fa-solid fa-volume-high" id="audio-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-4xl flex-grow flex flex-col justify-center items-center relative my-auto">
+
+        <!-- Connecting Wire SVG Lines -->
+        <svg id="wire-svg" class="absolute inset-0 w-full h-full pointer-events-none z-0" style="min-height: 480px;">
+            <path id="wire-a-main" d="" fill="none" stroke="#334155" stroke-width="10" stroke-linecap="round" />
+            <path id="wire-a-active" d="" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" class="power-line" />
+            
+            <path id="wire-b-main" d="" fill="none" stroke="#334155" stroke-width="10" stroke-linecap="round" />
+            <path id="wire-b-active" d="" fill="none" stroke="#f43f5e" stroke-width="6" stroke-linecap="round" class="power-line" />
+        </svg>
+
+        <!-- Main Cards Layout Grid -->
+        <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-8 z-10 my-auto py-2">
+            
+            <!-- LEFT COLUMN: SMALL FEEDER BOXES -->
+            <div class="flex flex-col space-y-6">
+
+                <!-- BOX A: ADJUSTABLE -->
+                <div id="box-a" class="bg-sky-950/80 border-4 border-sky-500 rounded-3xl p-5 shadow-2xl relative">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="p-2 bg-sky-500 rounded-lg text-slate-900 font-bold">A</span>
+                            <h2 class="text-xl font-bold text-sky-300">Box A (Your Controls)</h2>
+                        </div>
+                        <span class="text-xs bg-sky-900 text-sky-200 px-3 py-1 rounded-full border border-sky-700 font-bold">Adjustable</span>
+                    </div>
+
+                    <!-- Power Value Box -->
+                    <div class="bg-slate-900 border-2 border-sky-600 rounded-2xl p-4 flex flex-col items-center mb-4">
+                        <span class="text-xs text-sky-400 font-bold uppercase tracking-wider mb-1">Power Output</span>
+                        <div class="flex items-baseline space-x-2">
+                            <span id="val-a-display" class="text-6xl font-bold text-sky-400">1</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Controls -->
+                    <div class="bg-slate-900/90 rounded-2xl p-4 border border-sky-800/80 space-y-3">
+                        <div class="flex justify-between items-center space-x-3">
+                            <button onclick="adjustBoxA(-1)" class="flex-1 py-3 bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold rounded-xl text-2xl shadow-lg transition flex items-center justify-center">
+                                <i class="fa-solid fa-minus"></i>
+                            </button>
+
+                            <input type="range" id="slider-a" min="1" max="10" value="1" class="w-36 h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-400">
+
+                            <button onclick="adjustBoxA(1)" class="flex-1 py-3 bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold rounded-xl text-2xl shadow-lg transition flex items-center justify-center">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOX B: FIXED / BROKEN -->
+                <div id="box-b" class="bg-rose-950/80 border-4 border-rose-500 rounded-3xl p-5 shadow-2xl relative">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="p-2 bg-rose-500 rounded-lg text-slate-900 font-bold">B</span>
+                            <h2 class="text-xl font-bold text-rose-300">Box B (Broken)</h2>
+                        </div>
+                        <span class="text-xs bg-rose-900 text-rose-200 px-3 py-1 rounded-full border border-rose-700 font-bold">
+                            <i class="fa-solid fa-lock mr-1"></i> Locked
+                        </span>
+                    </div>
+
+                    <!-- Power Value Display -->
+                    <div class="bg-slate-900 border-2 border-rose-600 rounded-2xl p-4 flex flex-col items-center mb-3">
+                        <span class="text-xs text-rose-400 font-bold uppercase tracking-wider mb-1">Fixed Power Output</span>
+                        <div class="flex items-baseline space-x-2">
+                            <span id="val-b-display" class="text-6xl font-bold text-rose-400">4</span>
+                        </div>
+                    </div>
+
+                    <!-- Locked Alert Banner -->
+                    <div class="bg-rose-900/40 border border-rose-700 rounded-xl p-3 text-center">
+                        <p class="text-xs text-rose-200 font-semibold">
+                            <i class="fa-solid fa-triangle-exclamation text-yellow-400 mr-1"></i> Controls are stuck! You can't change Box B.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: MAIN POWER BOX -->
+            <div class="flex flex-col justify-center">
+                <div id="main-box" class="bg-slate-800/90 border-4 border-amber-500 rounded-3xl p-6 shadow-2xl flex flex-col justify-between min-h-[420px] transition-all duration-300">
+                    
+                    <!-- Title Banner -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4 pb-3 border-b-2 border-slate-700">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-3 rounded-2xl bg-amber-500 text-slate-900 text-2xl font-bold">
+                                    <i class="fa-solid fa-charging-station"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-bold text-amber-400">Main Power Box</h2>
+                                    <p class="text-xs text-slate-300">Box A + Box B = Total</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target Goal Box -->
+                        <div class="bg-amber-950/60 border-2 border-amber-500 p-4 rounded-2xl mb-5 flex justify-between items-center shadow-inner">
+                            <div>
+                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider block">TARGET POWER</span>
+                                <span class="text-xs text-slate-300">Set Box A to reach this goal!</span>
+                            </div>
+                            <span id="target-display" class="text-6xl font-bold text-amber-400">9</span>
+                        </div>
+
+                        <!-- Total Power Output Readout -->
+                        <div id="total-card" class="bg-slate-900 border-2 border-slate-700 p-5 rounded-2xl flex flex-col items-center justify-center relative">
+                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Current Combined Power</span>
+                            <span id="total-display" class="text-6xl font-bold text-amber-400 mb-2">?</span>
+                        </div>
+                    </div>
+
+                    <!-- Status Message & Lock In -->
+                    <div class="mt-6 pt-4 border-t-2 border-slate-700 flex justify-between items-center">
+                        <div>
+                            <span id="status-text" class="text-sm font-bold text-amber-400">Set Box A, then check your answer!</span>
+                        </div>
+                        <button id="lock-btn" onclick="checkSuccess()" class="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl text-md font-bold uppercase shadow-lg transition cursor-pointer">
+                            Check Answer <i class="fa-solid fa-check ml-1"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Stage Clear / Win Modal -->
+    <div id="modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 max-w-md w-full p-6 rounded-3xl border-4 border-yellow-400 shadow-2xl text-center space-y-4">
+            <div id="modal-icon-bg" class="w-20 h-20 bg-yellow-400 text-slate-900 rounded-full flex items-center justify-center mx-auto text-4xl shadow-lg bounce-gentle">
+                <i id="modal-icon" class="fa-solid fa-star"></i>
+            </div>
+            
+            <h2 id="modal-title" class="text-3xl font-bold text-yellow-400">Great Job!</h2>
+            <p id="modal-desc" class="text-md text-slate-200">You balanced the power grid!</p>
+
+            <button id="modal-next-btn" class="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold rounded-2xl shadow-lg text-lg transition uppercase tracking-wider">
+                Next Level <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Logic Script -->
+    <script>
+        const gameState = {
+            stage: 1,
+            maxStages: 3,
+            score: 0,
+            targetPower: 9,
+            boxA: 1,
+            boxB: 4,
+            totalPower: 5,
+            audioEnabled: true,
+            hasRevealed: false
+        };
+
+        // Helper to generate a random stage challenge
+        function getRandomStageConfig(stageNum) {
+            // Pick a fixed B between 1 and 8
+            const baseB = Math.floor(Math.random() * 8) + 1; 
+            // Pick Box A target answer between 1 and (10 - baseB) so total target never exceeds 10
+            const maxA = 10 - baseB;
+            const answerA = Math.floor(Math.random() * maxA) + 1; 
+            return {
+                target: baseB + answerA,
+                baseB: baseB
+            };
+        }
+
+        const el = {
+            stageDisplay: document.getElementById('stage-display'),
+            scoreDisplay: document.getElementById('score-display'),
+            valA: document.getElementById('val-a-display'),
+            sliderA: document.getElementById('slider-a'),
+            valB: document.getElementById('val-b-display'),
+            targetDisplay: document.getElementById('target-display'),
+            totalDisplay: document.getElementById('total-display'),
+            totalCard: document.getElementById('total-card'),
+            statusText: document.getElementById('status-text'),
+            lockBtn: document.getElementById('lock-btn'),
+            modal: document.getElementById('modal'),
+            modalIconBg: document.getElementById('modal-icon-bg'),
+            modalIcon: document.getElementById('modal-icon'),
+            modalTitle: document.getElementById('modal-title'),
+            modalDesc: document.getElementById('modal-desc'),
+            modalNextBtn: document.getElementById('modal-next-btn'),
+            audioToggle: document.getElementById('audio-toggle'),
+            audioIcon: document.getElementById('audio-icon')
+        };
+
+        class SoundEngine {
+            constructor() { this.ctx = null; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            playBeep(freq = 440, duration = 0.1) {
+                if (!gameState.audioEnabled) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            }
+            playWin() {
+                if (!gameState.audioEnabled) return;
+                this.playBeep(523, 0.15);
+                setTimeout(() => this.playBeep(659, 0.15), 100);
+                setTimeout(() => this.playBeep(783, 0.3), 200);
+            }
+            playError() {
+                if (!gameState.audioEnabled) return;
+                this.playBeep(220, 0.2);
+                setTimeout(() => this.playBeep(180, 0.3), 150);
+            }
+        }
+
+        const sounds = new SoundEngine();
+
+        el.audioToggle.addEventListener('click', () => {
+            gameState.audioEnabled = !gameState.audioEnabled;
+            el.audioIcon.className = gameState.audioEnabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark text-rose-400";
+        });
+
+        function loadStage(stageNum) {
+            // Generate a fresh challenge for this stage or retry
+            const config = getRandomStageConfig(stageNum);
+            gameState.stage = stageNum;
+            gameState.targetPower = config.target;
+            gameState.boxB = config.baseB;
+            gameState.boxA = 1;
+            gameState.hasRevealed = false;
+
+            el.stageDisplay.innerText = `${gameState.stage} / ${gameState.maxStages}`;
+            el.targetDisplay.innerText = gameState.targetPower;
+            el.sliderA.value = gameState.boxA;
+
+            updatePowerValues();
+        }
+
+        window.adjustBoxA = function(delta) {
+            const newVal = Math.min(10, Math.max(1, gameState.boxA + delta));
+            if (newVal !== gameState.boxA) {
+                gameState.boxA = newVal;
+                el.sliderA.value = gameState.boxA;
+                sounds.playBeep(350 + gameState.boxA * 30, 0.05);
+                updatePowerValues();
+            }
+        };
+
+        el.sliderA.addEventListener('input', (e) => {
+            gameState.boxA = parseInt(e.target.value, 10);
+            updatePowerValues();
+        });
+
+        function updatePowerValues() {
+            gameState.totalPower = gameState.boxA + gameState.boxB;
+
+            el.valA.innerText = gameState.boxA;
+            el.valB.innerText = gameState.boxB;
+
+            // Reset total card display until check answer is clicked
+            gameState.hasRevealed = false;
+            el.totalDisplay.innerText = "?";
+            el.totalCard.className = "bg-slate-900 border-2 border-slate-700 p-5 rounded-2xl flex flex-col items-center justify-center relative";
+            el.statusText.innerText = "Adjust Box A, then click Check Answer!";
+            el.statusText.className = "text-sm font-bold text-amber-400";
+        }
+
+        function drawConduitWires() {
+            const svg = document.getElementById('wire-svg');
+            const boxA = document.getElementById('box-a').getBoundingClientRect();
+            const boxB = document.getElementById('box-b').getBoundingClientRect();
+            const mainBox = document.getElementById('main-box').getBoundingClientRect();
+            const container = svg.getBoundingClientRect();
+
+            const startA = { x: boxA.right - container.left, y: boxA.top + boxA.height/2 - container.top };
+            const startB = { x: boxB.right - container.left, y: boxB.top + boxB.height/2 - container.top };
+            const endMain = { x: mainBox.left - container.left, y: mainBox.top + mainBox.height/2 - container.top };
+
+            const pathA = `M ${startA.x} ${startA.y} C ${startA.x + 50} ${startA.y}, ${endMain.x - 50} ${endMain.y - 30}, ${endMain.x} ${endMain.y - 15}`;
+            const pathB = `M ${startB.x} ${startB.y} C ${startB.x + 50} ${startB.y}, ${endMain.x - 50} ${endMain.y + 30}, ${endMain.x} ${endMain.y + 15}`;
+
+            document.getElementById('wire-a-main').setAttribute('d', pathA);
+            document.getElementById('wire-a-active').setAttribute('d', pathA);
+            document.getElementById('wire-b-main').setAttribute('d', pathB);
+            document.getElementById('wire-b-active').setAttribute('d', pathB);
+        }
+
+        window.checkSuccess = function() {
+            gameState.hasRevealed = true;
+            el.totalDisplay.innerText = gameState.totalPower;
+
+            if (gameState.totalPower === gameState.targetPower) {
+                el.totalCard.className = "bg-emerald-950/80 border-4 border-emerald-400 p-5 rounded-2xl flex flex-col items-center justify-center relative";
+                sounds.playWin();
+                gameState.score += 1;
+                el.scoreDisplay.innerHTML = `<i class="fa-solid fa-star mr-1"></i>${gameState.score}`;
+
+                el.modalIconBg.className = "w-20 h-20 bg-yellow-400 text-slate-900 rounded-full flex items-center justify-center mx-auto text-4xl shadow-lg bounce-gentle";
+                el.modalIcon.className = "fa-solid fa-star";
+
+                if (gameState.stage >= gameState.maxStages) {
+                    el.modalTitle.innerText = "Power Restored";
+                    el.modalDesc.innerText = "Please enter the following code: 2471";
+                    el.modalNextBtn.classList.add('hidden');
+                } else {
+                    el.modalTitle.innerText = "Great Job! 🎉";
+                    el.modalDesc.innerText = `Level ${gameState.stage} cleared! ${gameState.boxA} + ${gameState.boxB} = ${gameState.targetPower}`;
+                    el.modalNextBtn.innerText = "Next Level";
+                    el.modalNextBtn.classList.remove('hidden');
+                }
+
+                setTimeout(() => el.modal.classList.remove('hidden'), 400);
+            } else {
+                sounds.playError();
+                el.totalCard.className = "bg-rose-950/80 border-4 border-rose-500 p-5 rounded-2xl flex flex-col items-center justify-center relative";
+                
+                el.modalIconBg.className = "w-20 h-20 bg-rose-500 text-white rounded-full flex items-center justify-center mx-auto text-4xl shadow-lg";
+                el.modalIcon.className = "fa-solid fa-rotate-right";
+                el.modalTitle.innerText = "Not Quite! ⚡";
+                
+                if (gameState.totalPower < gameState.targetPower) {
+                    el.modalDesc.innerText = `Total was ${gameState.totalPower} (${gameState.boxA} + ${gameState.boxB}). That was too low! Let's try a new puzzle.`;
+                } else {
+                    el.modalDesc.innerText = `Total was ${gameState.totalPower} (${gameState.boxA} + ${gameState.boxB}). That was too high! Let's try a new puzzle.`;
+                }
+                
+                el.modalNextBtn.innerText = "Try Again 🔄";
+                el.modalNextBtn.classList.remove('hidden');
+
+                setTimeout(() => el.modal.classList.remove('hidden'), 400);
+            }
+        };
+
+        el.modalNextBtn.addEventListener('click', () => {
+            el.modal.classList.add('hidden');
+            if (gameState.totalPower === gameState.targetPower) {
+                if (gameState.stage < gameState.maxStages) {
+                    loadStage(gameState.stage + 1);
+                }
+            } else {
+                // Incorrect answer: reload current stage with new randomized values
+                loadStage(gameState.stage);
+            }
+        });
+
+        window.addEventListener('resize', drawConduitWires);
+
+        window.onload = function() {
+            loadStage(1);
+            drawConduitWires();
+        };
+    </script>
+</body>
+</html>
